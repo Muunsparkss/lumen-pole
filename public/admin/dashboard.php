@@ -1,24 +1,24 @@
 <?php
 session_start();
-require_once '../classes/Auth.php';
-require_once '../classes/Election.php';
+require_once '../../classes/AdminAuth.php';
+require_once '../../classes/Election.php';
 
-// Check if user is logged in
-if (!Auth::isLoggedIn()) {
-    header('Location: login.php');
+// Check if user is admin
+if (!AdminAuth::isAdmin()) {
+    header('Location: ../login.php');
     exit;
 }
 
 $user = Auth::getCurrentUser();
 $election = new Election();
-$activeElections = $election->getActiveElections();
+$allElections = $election->getActiveElections();
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elections - Voting Platform</title>
+    <title>Admin Dashboard - Voting Platform</title>
     <style>
         * {
             margin: 0;
@@ -58,6 +58,13 @@ $activeElections = $election->getActiveElections();
             gap: 20px;
         }
 
+        .admin-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
         .logout-btn {
             background: rgba(255, 255, 255, 0.2);
             color: white;
@@ -77,6 +84,30 @@ $activeElections = $election->getActiveElections();
             max-width: 1200px;
             margin: 40px auto;
             padding: 0 20px;
+        }
+
+        .admin-nav {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: #764ba2;
         }
 
         .welcome {
@@ -150,30 +181,83 @@ $activeElections = $election->getActiveElections();
             text-transform: uppercase;
         }
 
-        .vote-btn {
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+        .election-status {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-draft {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-closed {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 10px;
             border: none;
             border-radius: 5px;
             cursor: pointer;
             font-weight: 600;
-            transition: transform 0.2s;
-            margin-top: 10px;
             text-decoration: none;
-            display: block;
             text-align: center;
+            font-size: 14px;
+            transition: transform 0.2s;
         }
 
-        .vote-btn:hover {
+        .btn-edit {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-edit:hover {
             transform: translateY(-2px);
         }
 
-        .vote-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
+        .btn-candidates {
+            background: #764ba2;
+            color: white;
+        }
+
+        .btn-candidates:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-results {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-results:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-close {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-close:hover {
+            transform: translateY(-2px);
         }
 
         .no-elections {
@@ -188,29 +272,40 @@ $activeElections = $election->getActiveElections();
 <body>
     <header>
         <div class="header-container">
-            <h1>🗳️ Voting Platform</h1>
+            <h1>🗳️ Voting Platform - Admin</h1>
             <div class="user-info">
-                <span>Welcome, <?php echo htmlspecialchars($user['full_name']); ?></span>
-                <a href="logout.php" class="logout-btn">Logout</a>
+                <span class="admin-badge">🔐 ADMIN</span>
+                <span><?php echo htmlspecialchars($user['full_name']); ?></span>
+                <a href="../logout.php" class="logout-btn">Logout</a>
             </div>
         </div>
     </header>
 
     <div class="container">
-        <div class="welcome">
-            <h2>Active Elections</h2>
-            <p>Participate in the following elections by selecting your preferred candidate:</p>
+        <div class="admin-nav">
+            <a href="dashboard.php" class="nav-btn active">Dashboard</a>
+            <a href="create_election.php" class="nav-btn">Create Election</a>
+            <a href="../index.php" class="nav-btn">View as Voter</a>
         </div>
 
-        <?php if (empty($activeElections)): ?>
+        <div class="welcome">
+            <h2>Elections Management</h2>
+            <p>Manage all elections, candidates, and view voting results.</p>
+        </div>
+
+        <?php if (empty($allElections)): ?>
             <div class="no-elections">
-                <h3>No Active Elections</h3>
-                <p>There are currently no active elections. Check back later!</p>
+                <h3>No Elections Yet</h3>
+                <p><a href="create_election.php" style="color: #667eea;">Create your first election</a></p>
             </div>
         <?php else: ?>
             <div class="elections-grid">
-                <?php foreach ($activeElections as $elec): ?>
+                <?php foreach ($allElections as $elec): ?>
                     <div class="election-card">
+                        <div class="election-status status-<?php echo $elec['status']; ?>">
+                            <?php echo strtoupper($elec['status']); ?>
+                        </div>
+                        
                         <h3><?php echo htmlspecialchars($elec['title']); ?></h3>
                         <p><?php echo htmlspecialchars(substr($elec['description'], 0, 100)); ?></p>
                         
@@ -225,11 +320,13 @@ $activeElections = $election->getActiveElections();
                             </div>
                         </div>
 
-                        <small>Election ends: <?php echo date('M d, Y H:i', strtotime($elec['end_date'])); ?></small>
+                        <small>Ends: <?php echo date('M d, Y H:i', strtotime($elec['end_date'])); ?></small>
                         
-                        <a href="vote.php?election_id=<?php echo $elec['id']; ?>" class="vote-btn">
-                            Vote Now
-                        </a>
+                        <div class="action-buttons">
+                            <a href="edit_election.php?id=<?php echo $elec['id']; ?>" class="action-btn btn-edit">Edit</a>
+                            <a href="manage_candidates.php?id=<?php echo $elec['id']; ?>" class="action-btn btn-candidates">Candidates</a>
+                            <a href="results.php?id=<?php echo $elec['id']; ?>" class="action-btn btn-results">Results</a>
+                        </div>
                     </div>
                 <?php endforeach; ?>
             </div>
